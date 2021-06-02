@@ -190,7 +190,9 @@ Chaque composant d'une vue est caractérisé par un identifiant unique. Ces iden
 
 Pour accéder à un certain composant, on va donc procéder de la sorte :
 
-``final EditText usernameEditText = view.findViewById(R.id.idUsername);``
+```java
+final EditText usernameEditText = view.findViewById(R.id.idUsername);
+```
 
 Avant de se ruer sur le code, tentons tout d'abord d'expliquer comment un fragment se comporte avec son contenu.
 
@@ -200,7 +202,7 @@ Avant de se ruer sur le code, tentons tout d'abord d'expliquer comment un fragme
 
 Maintenant qu'on voit à peu près comment ça marche, on peut récupérer les champs username et password et les afficher dans notre console pour vérifier que cela fonctionne comme prévu :
 
-``  
+```java  
     final EditText usernameEditText = view.findViewById(R.id.idUsername);
     final EditText passwordEditText = view.findViewById(R.id.idPassword);
     final Button loginButton = view.findViewById(R.id.idSignIn);
@@ -212,7 +214,7 @@ Maintenant qu'on voit à peu près comment ça marche, on peut récupérer les c
             // NavHostFragment.findNavController(FirstFragment.this).navigate(R.id.action_FirstFragment_to_SecondFragment);
         }
     });
-``
+```
 
 ## Discussion avec une API
 
@@ -228,13 +230,13 @@ Dans cette partie on va voir comment contacter une API depuis une application an
 Retrofit2 est un package qui rassemble toutes les méthodes pour pouvoir contacter une API. Il nécessite cependant de créer une sorte d'entité JAVA pour stocker la réponse de l'API.
 
 On va donc commencer par créer cette entité :
-``
+```java
     public class SessionToken {
         private String token;
         private LocalDateTime expirationDate;
     //...
     }
-``
+```
 
 Voici ce que l'API nous répond:
 
@@ -244,7 +246,7 @@ Voici ce que l'API nous répond:
 Il faut désormais importer cette fameuse librairie Retrofit2. Pour cela, on va l'ajouter à notre gestionnaire de dépendences **Gradle** :
 app/build.gradle
 
-``
+```java
 dependencies {
 //...
 implementation 'com.squareup.retrofit2:retrofit:2.4.0'
@@ -252,11 +254,11 @@ implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
 implementation 'com.squareup.retrofit2:adapter-rxjava:2.4.0'
 //...
 }
-``
+```
 
 Maintenant que nous avons la réponse API sous forme d'entité, nous allons maintenant définir l'appel que nous voulons faire :
 
-``
+```java
 public interface AuthAPI {
     @GET("ping")
     Call<String> ping();
@@ -265,7 +267,7 @@ public interface AuthAPI {
     Call<SessionToken> loginUser(@Body JsonObject authInput);	
   	//...
 }
-``
+```
 
 On définit dans cette classe les méthodes que l'on va potentiellement utiliser :
 
@@ -286,56 +288,40 @@ On sait ce que l'on manipule et comment on va discuter avec l'API, je pense qu'o
 
 Avant de commencer à coder l'appel API, il faut préciser dans le manifeste de notre application qu'elle peut converser avec l'extérieur.
 
-``
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-package="com.example.mapremireapplicationavecalexandrequivatresuperbe">
-
-	<!-- ... -->
-  <uses-permission android:name="android.permission.INTERNET" />
-
-<application
-//...
-android:usesCleartextTraffic="true"
-//...
->
-	<!-- ... -->
-  </application>
-</manifest>``
-
 De retour dans notre fragment 1, on va maintenant faire plus que logger les identifiants !
 
 On doit d'abord instancier un Mapper. Comme son nom l'indique, il sert à transformer (ou "mapper") les objets JAVA en objet JSON et inversement.
 
-``
+```java
 Gson gson = new GsonBuilder()
 .registerTypeAdapter(LocalDateTime.class, (JsonDeserializer<LocalDateTime>) (json, typeOfT, context) -> LocalDateTime.parse(json.getAsString()))
 .setLenient()
 .create();
-``
+```
 
 Ensuite on déclare notre fameux objet Retrofit. On y attache notre mapper pour être sûr de traiter les champs de la bonne manière.
 
-``
+```java
 Retrofit retrofit = new Retrofit.Builder()
 .baseUrl("http://dourlens-monchy.fr:8090/")
 .addConverterFactory(GsonConverterFactory.create(gson))
 .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
 .build();
-``
+```
 
 Nous sommes heureux de pouvoir utiliser ce merveilleux objet qui va nous permettre de discuter avec notre serveur. Il nous faut maintenant instancier la classe recensant les méthodes que nous avons décrites précédemment :
 
-``
+```java
 AuthAPI authAPI = retrofit.create(AuthAPI.class);
 Map<String, Object> params = new HashMap<>();
 params.put("username", usernameEditText.getText().toString());
 params.put("password", passwordEditText.getText().toString());
 Call<SessionToken> apiCall = authAPI.loginUser(JsonUtils.mapToJSON(params));
-``
+```
 
 Par soucis de généralisation je vous propose cette classe JsonUtils qui vous permet de transformer un type Map<String,Object> en objet JSON. Cela permet dans le cas présent de créer le body de notre requête de login.
 
-``
+```java
 public class JsonUtils {
 public static JsonObject mapToJSON(Map<String, Object> params) {
     JsonObject gsonObject = new JsonObject();
@@ -354,11 +340,11 @@ public static JsonObject mapToJSON(Map<String, Object> params) {
     return gsonObject;
 }
 }
-``
+```
 
 Nous sommes désormais en possession d'un objet qui contient notre requête, elle n'est cependant toujours pas lancée. Pour cela, il faut lancer la fonction enqueue.
 
-``
+```java
 apiCall.enqueue(new Callback<SessionToken>() {
 @Override
 public void onResponse(Call<SessionToken> call, Response<SessionToken> response) {
@@ -371,7 +357,7 @@ public void onFailure(Call<SessionToken> call, Throwable t) {
 Log.i("ERROR",t.getMessage());
 }
 });
-``
+```
 
 Cette fonction nous permet d'interprêter la réponse serveur, peut importe sa nature. Dans un cas de succès, la fonction onResponse sera exécutée, dans la cas contraire onFailure.
 
